@@ -92,6 +92,9 @@
         0 0 90px 10px var(--glow1);
       transition: transform .08s ease, box-shadow .2s ease;
       overflow:hidden;
+
+      /* Prevent ghost clicks / delays; enables single increment on mobile */
+      touch-action: manipulation;
     }
     .bigbtn:active{ transform: scale(.985) translateY(1px)}
     .bigbtn::before{
@@ -175,6 +178,15 @@
       const particlesRef = useRef([]);
       const rafRef = useRef(null);
 
+      // Single audio instance for click sound (served from /public)
+      const audioRef = useRef(null);
+      useEffect(() => {
+        const a = new Audio('/radhe_radhe.mp3');
+        a.preload = 'auto';
+        a.playbackRate = 1; // adjust if you like
+        audioRef.current = a;
+      }, []);
+
       // Persist
       useEffect(()=>{ localStorage.setItem('radha_count', String(count)); },[count]);
 
@@ -238,12 +250,30 @@
         try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){}
       }
 
+      // Play audio from public/radhe_radhe.mp3 on each tap
+      function playRadhe(){
+        const a = audioRef.current;
+        if(!a) return;
+        try{
+          // restart the short clip so rapid taps feel snappy
+          a.pause();
+          a.currentTime = 0;
+          const p = a.play();
+          if (p && typeof p.catch === 'function') p.catch(()=>{ /* ignore blocked play */});
+        }catch(e){}
+      }
+
       function handleTap(ev){
+        ev.preventDefault?.();
+
+        // ignore non-left clicks
+        if (ev.button !== undefined && ev.button !== 0) return;
+
         const rect = btnRef.current.getBoundingClientRect();
         const cx = rect.left + rect.width/2;
         const cy = rect.top + rect.height/2;
-        const x = (ev.touches?.[0]?.clientX ?? ev.clientX ?? cx);
-        const y = (ev.touches?.[0]?.clientY ?? ev.clientY ?? cy);
+        const x = (ev.clientX ?? cx);
+        const y = (ev.clientY ?? cy);
 
         // Ripple
         const id = rippleId.current++;
@@ -251,11 +281,11 @@
         setRipples(rs => [...rs, { id, x, y, size }]);
         setTimeout(()=> setRipples(rs => rs.filter(r => r.id !== id)), 700);
 
-        // Effects + count
+        // Effects + count + sound
         burstAt(x,y, (count+1) % 108 === 0); // big at every 108
         vibrate();
         setCount(c => c + 1);
-  
+        playRadhe();
       }
 
       function reset(){
@@ -328,8 +358,7 @@
                 className="bigbtn"
                 role="button"
                 aria-label="Tap to chant Radha and increase the counter"
-                onMouseDown={handleTap}
-                onTouchStart={handleTap}
+                onPointerDown={handleTap}   <!-- single event to avoid double increment -->
               >
                 <div className="btnText">Radha</div>
 
