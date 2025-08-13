@@ -234,19 +234,6 @@
         }
       }
 
-      function speakRadha(){
-        try{
-          const u = new SpeechSynthesisUtterance('Radha');
-          u.rate = 0.95; u.pitch = 1.1;
-          // Prefer a soft female voice if available
-          const voices = speechSynthesis.getVoices?.() || [];
-          const prefer = voices.find(v => /India|en-IN|hi-IN|UK|Female/i.test(v.name+v.lang));
-          if(prefer) u.voice = prefer;
-          speechSynthesis.cancel(); // prevent queue build-up
-          speechSynthesis.speak(u);
-        }catch(e){ /* ignore if unsupported */ }
-      }
-
       function vibrate(ms=15){
         try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){}
       }
@@ -268,7 +255,7 @@
         burstAt(x,y, (count+1) % 108 === 0); // big at every 108
         vibrate();
         setCount(c => c + 1);
-        speakRadha();
+  
       }
 
       function reset(){
